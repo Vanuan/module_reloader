@@ -11,8 +11,6 @@ global_modules_timestamps = {}
 
 
 class Finder(object):
-    def __init__(self):
-        pass
 
     def find_module(self, moduleFullname, path=None):
         moduleFile = None
@@ -23,15 +21,12 @@ class Finder(object):
             moduleModifiedTimeStamp = time.ctime(os.path.getmtime(moduleFileName))
             global_modules_timestamps[moduleFullname] = (moduleFileName,
                                                          moduleModifiedTimeStamp)
-        except (ImportError):
+        except (ImportError, OSError):
             pass
         finally:
             if moduleFile != None:
                 moduleFile.close()
         return None
-
-    def isInstanceOfFinder(self):
-        return True
 
 
 def setupHook():

@@ -14,7 +14,7 @@ reloader.reloadModifiedModules()
 
 @author: Vanuan
 '''
-import os, time, types, sys
+import os, time, sys
 
 import _import_hook # import only once, do not reload
 import __builtin__
