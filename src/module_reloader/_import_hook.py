@@ -5,7 +5,10 @@ Import only once.
 @author: Vanuan
 '''
 
-import imp, os, time, sys
+import imp
+import os
+import time
+import sys
 
 global_modules_timestamps = {}
 
@@ -18,9 +21,9 @@ class Finder(object):
             (moduleFile,
              moduleFileName,
              moduleDescription) = imp.find_module(moduleFullname, path)
-            moduleModifiedTimeStamp = time.ctime(os.path.getmtime(moduleFileName))
+            modifiedTimeStamp = time.ctime(os.path.getmtime(moduleFileName))
             global_modules_timestamps[moduleFullname] = (moduleFileName,
-                                                         moduleModifiedTimeStamp)
+                                                         modifiedTimeStamp)
         except (ImportError, OSError):
             pass
         finally:
@@ -33,4 +36,4 @@ def setupHook():
         sys.meta_path.append(Finder())
 
 
-setupHook() # make sure to call this only once
+setupHook()  # make sure to call this only once
