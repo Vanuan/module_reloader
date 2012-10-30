@@ -17,6 +17,32 @@ reloader.reloadModifiedModules()
 import os, time, types, sys
 
 import _import_hook # import only once, do not reload
+import __builtin__
+
+class RollbackImporter:
+    def __init__(self):
+        "Creates an instance and installs as the global importer"
+        self.previousModules = sys.modules.copy()
+        self.realImport = __builtin__.__import__
+        __builtin__.__import__ = self._import
+        self.newModules = {}
+
+    def _import(self, name, globals=None, locals=None, fromlist=[]):
+        result = apply(self.realImport, (name, globals, locals, fromlist))
+        self.newModules[name] = 1
+        return result
+
+    def uninstall(self):
+        for modname in self.newModules.keys():
+            if not self.previousModules.has_key(modname):
+                # Force reload when modname next imported
+                if modname in sys.modules:
+                    del(sys.modules[modname])
+        __builtin__.__import__ = self.realImport
+
+
+rollbackImporter = RollbackImporter()
+
 
 def reloadModifiedModules():
     '''
@@ -31,9 +57,13 @@ def reloadAllModules():
     reloadModulesWhere(condition=lambda moduleName: True)
 
 def reloadModulesWhere(condition=lambda moduleName: True):
-    reload(sys.modules[__name__])
     start = time.time()
     print "Reloading modules...\n[\n",
+    global rollbackImporter
+    if rollbackImporter:
+        rollbackImporter.uninstall()
+    rollbackImporter = RollbackImporter()
+
     for modulename in sys.modules:
         if (modulename == '__main__' or
             modulename == 're' or modulename == '__builtin__' or
