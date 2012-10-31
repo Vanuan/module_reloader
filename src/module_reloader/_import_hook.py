@@ -15,13 +15,19 @@ class Finder(object):
         pass
 
     def find_module(self, moduleFullname, path=None):
+        moduleFile = None
         try:
-            moduleFileName = imp.find_module(moduleFullname, path)[1]
+            (moduleFile,
+             moduleFileName,
+             moduleDescription) = imp.find_module(moduleFullname, path)
             moduleModifiedTimeStamp = time.ctime(os.path.getmtime(moduleFileName))
             global_modules_timestamps[moduleFullname] = (moduleFileName,
                                                          moduleModifiedTimeStamp)
-        except (ImportError, OSError):
-            return None
+        except (ImportError):
+            pass
+        finally:
+            if moduleFile != None:
+                moduleFile.close()
         return None
 
     def isInstanceOfFinder(self):
@@ -30,8 +36,6 @@ class Finder(object):
 
 def setupHook():
         sys.meta_path.append(Finder())
-
-
 
 
 setupHook() # make sure to call this only once
