@@ -20,7 +20,7 @@ class Finder(object):
         try:
             (moduleFile,
              moduleFileName,
-             moduleDescription) = imp.find_module(moduleFullname, path)
+             _) = imp.find_module(moduleFullname, path)
             modifiedTimeStamp = time.ctime(os.path.getmtime(moduleFileName))
             if moduleFullname not in sys.builtin_module_names:
                 global_modules_timestamps[moduleFullname] = (moduleFileName,

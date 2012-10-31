@@ -21,6 +21,7 @@ import sys
 import _import_hook  # import only once, do not reload
 import __builtin__
 
+
 class RollbackImporter:
     '''
     This is good for making sys.modules exactly like it was before
@@ -32,14 +33,15 @@ class RollbackImporter:
         __builtin__.__import__ = self._import
         self.newModules = {}
 
-    def _import(self, name, globals=None, locals=None, fromlist=[]):
-        result = apply(self.realImport, (name, globals, locals, fromlist))
+    # pep8-ignore: E241
+    def _import(self, name, globals_, locals_, fromlist):
+        result = apply(self.realImport, (name, globals_, locals_, fromlist))
         self.newModules[name] = 1
         return result
 
     def uninstall(self):
         for modname in self.newModules.keys():
-            if not self.previousModules.has_key(modname):
+            if modname not in self.previousModules:
                 # Force reload when modname next imported
                 print 'there was no ' + modname
                 if modname in sys.modules:
@@ -49,6 +51,7 @@ class RollbackImporter:
 
 
 rollbackImporter = RollbackImporter()
+
 
 def reloadModifiedModules():
     '''
@@ -69,7 +72,6 @@ def reloadModulesWhere(condition=lambda moduleName: True):
 
     global rollbackImporter
 
-
     for modulename in sys.modules:
         if (modulename == '__main__' or
             modulename == 're' or modulename == '__builtin__' or
@@ -88,11 +90,14 @@ def reloadModulesWhere(condition=lambda moduleName: True):
         rollbackImporter.uninstall()
 #    rollbackImporter = RollbackImporter()
 
+
 def unloadAllModules():
-    exceptions = sys.builtin_module_names + ('_import_hook', 'reloader', 'module_reloader', '__main__')
+    exceptions = sys.builtin_module_names + ('_import_hook', 'reloader',
+                                             'module_reloader', '__main__')
     moduleNames = filter(lambda x: x not in exceptions, sys.modules.keys())
     for modulename in moduleNames:
         del(sys.modules[modulename])
+
 
 def __none(moduleName):
     return False

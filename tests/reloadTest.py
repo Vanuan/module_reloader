@@ -9,6 +9,7 @@ import os
 import subprocess
 import time
 
+
 class Test(unittest.TestCase):
 
     def setUp(self):
@@ -17,48 +18,47 @@ class Test(unittest.TestCase):
         self.reloader_path = os.path.dirname(__file__) + '/../src'
         self.test_scripts_dir = os.path.dirname(__file__) + '/testScripts/'
         # add folder to classpath
-        exitCode, out, err = self.addToClassPath(self.path_to_jython)
+        exitCode, _, err = self.addToClassPath(self.path_to_jython)
         self.assertEqual(0, exitCode, err)
-        exitCode, out, err = self.addToClassPath(self.reloader_path)
+        exitCode, _, err = self.addToClassPath(self.reloader_path)
         self.assertEqual(0, exitCode, err)
         # prerequisites:
         # running nailgun server
         self.setUpModules()
 
-
     def setUpModules(self):
         code = ('import module_reloader.reloader;'
                 ' module_reloader.reloader.unloadAllModules()')
-        exitCode, out, err = self.runCode(code)
+        exitCode, _, err = self.runCode(code)
         self.assertEqual(0, exitCode, err)
         code = ('import module_reloader.reloader;'
                 ' module_reloader.reloader.reloadModifiedModules()')
-        exitCode, out, err = self.runCode(code)
+        exitCode, _, err = self.runCode(code)
         self.assertEqual(0, exitCode, err)
 
-
     def execute(self, args):
-        p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(args, stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         exitCode = p.wait()
         (out, err) = p.communicate()
 
         return (exitCode, out, err)
 
     def executeNgClient(self, args):
-        tuple = self.execute([self.path_to_nailgun_client] + args)
-        return tuple
+        result = self.execute([self.path_to_nailgun_client] + args)
+        return result
 
     def addToClassPath(self, path):
-        tuple = self.executeNgClient(['ng-cp', path])
-        return tuple
+        result = self.executeNgClient(['ng-cp', path])
+        return result
 
     def runCode(self, code):
-        tuple = self.executeNgClient(['org.python.util.jython', '-c', code])
-        return tuple
+        result = self.executeNgClient(['org.python.util.jython', '-c', code])
+        return result
 
     def runScript(self, path):
-        tuple = self.executeNgClient(['org.python.util.jython', path])
-        return tuple
+        result = self.executeNgClient(['org.python.util.jython', path])
+        return result
 
     def touch(self, fname, times=None):
         with file(fname, 'a'):
@@ -79,7 +79,8 @@ class Test(unittest.TestCase):
                 ' module_reloader.reloader.reloadModifiedModules()')
         exitCode, out, err = self.runCode(code)
         self.assertEqual(0, exitCode)
-        self.assertEqual(out, 'Reloading modules...\n[\n\n]\nDone in 0.0 seconds.\n')
+        self.assertEqual(out, 'Reloading modules...\n'
+                         '[\n\n]\nDone in 0.0 seconds.\n')
         self.assertEqual(err, '')
 
         # Next imports should not re-import modules (verify)
@@ -105,7 +106,8 @@ class Test(unittest.TestCase):
         self.assertEqual(0, exitCode, err)
         self.assertTrue('Reloading modules...\n'
                             '[\n'
-                            '... reloading \'imported_module\' imported_module\n'
+                            '... reloading '
+                            '\'imported_module\' imported_module\n'
                             '\n]\n'
                             'Done in 0.0' in out, out)
         self.assertEqual(err, '')
