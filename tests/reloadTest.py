@@ -8,17 +8,39 @@ import unittest
 import os
 import subprocess
 import time
+import ConfigParser
+
+
+class Settings():
+    def __init__(self):
+        filename = os.path.dirname(__file__) + '/config.ini'
+        self.config = ConfigParser.RawConfigParser()
+        self.config.optionxform = str
+        self.config.read(filename)
+
+    def getPathToNgClient(self):
+        return self.config.get('nailgun', 'path_to_client')
+
+    def getPathToJython(self):
+        return self.config.get('jython', 'path_to_jython')
+
+    def getPathToJythonLib(self):
+        return self.config.get('jython', 'path_to_jython_lib')
 
 
 class Test(unittest.TestCase):
 
     def setUp(self):
-        self.path_to_nailgun_client = '/home/iyani/Downloads/nailgun-0.7.1/ng'
-        self.path_to_jython = '/opt/jython/jython-2.5.3/jython.jar'
+        settings = Settings()
+        self.path_to_nailgun_client = settings.getPathToNgClient()
+        self.path_to_jython = settings.getPathToJython()
+        self.path_to_jython_lib = settings.getPathToJythonLib()
         self.reloader_path = os.path.dirname(__file__) + '/../src'
         self.test_scripts_dir = os.path.dirname(__file__) + '/testScripts/'
         # add folder to classpath
         exitCode, _, err = self.addToClassPath(self.path_to_jython)
+        self.assertEqual(0, exitCode, err)
+        exitCode, _, err = self.addToClassPath(self.path_to_jython_lib)
         self.assertEqual(0, exitCode, err)
         exitCode, _, err = self.addToClassPath(self.reloader_path)
         self.assertEqual(0, exitCode, err)

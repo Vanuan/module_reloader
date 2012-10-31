@@ -1,0 +1,6 @@
+[nailgun]
+path_to_client=ng
+
+[jython]
+path_to_jython=jython.jar
+path_to_jython_lib=jython/Lib
