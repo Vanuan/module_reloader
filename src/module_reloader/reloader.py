@@ -14,9 +14,11 @@ reloader.reloadModifiedModules()
 
 @author: Vanuan
 '''
-import os, time, sys
+import os
+import time
+import sys
 
-import _import_hook # import only once, do not reload
+import _import_hook  # import only once, do not reload
 import __builtin__
 
 class RollbackImporter:
@@ -48,7 +50,6 @@ class RollbackImporter:
 
 rollbackImporter = RollbackImporter()
 
-
 def reloadModifiedModules():
     '''
     Call this every time you run a Jython script.
@@ -61,6 +62,7 @@ def reloadModifiedModules():
 def reloadAllModules():
     reloadModulesWhere(condition=lambda moduleName: True)
 
+
 def reloadModulesWhere(condition=lambda moduleName: True):
     start = time.time()
     print "Reloading modules...\n[\n",
@@ -71,8 +73,8 @@ def reloadModulesWhere(condition=lambda moduleName: True):
     for modulename in sys.modules:
         if (modulename == '__main__' or
             modulename == 're' or modulename == '__builtin__' or
-            modulename == 'sre_constants' # raises exception if it is reloaded
-                                          # and re.compile was used
+            modulename == 'sre_constants'  # raises exception if it is reloaded
+                                           # and re.compile was used
             ):
             pass
         elif condition(modulename):
@@ -94,6 +96,7 @@ def unloadAllModules():
 
 def __none(moduleName):
     return False
+
 
 def __isModified(moduleName):
     '''

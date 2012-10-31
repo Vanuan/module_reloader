@@ -22,8 +22,9 @@ class Finder(object):
              moduleFileName,
              moduleDescription) = imp.find_module(moduleFullname, path)
             modifiedTimeStamp = time.ctime(os.path.getmtime(moduleFileName))
-            global_modules_timestamps[moduleFullname] = (moduleFileName,
-                                                         modifiedTimeStamp)
+            if moduleFullname not in sys.builtin_module_names:
+                global_modules_timestamps[moduleFullname] = (moduleFileName,
+                                                             modifiedTimeStamp)
         except (ImportError, OSError):
             pass
         finally:
@@ -33,7 +34,7 @@ class Finder(object):
 
 
 def setupHook():
-        sys.meta_path.append(Finder())
+    sys.meta_path.append(Finder())
 
 
 setupHook()  # make sure to call this only once
