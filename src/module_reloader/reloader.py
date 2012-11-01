@@ -34,9 +34,10 @@ class RollbackImporter:
         self.newModules = {}
 
     # pep8-ignore: E241
-    def _import(self, name, globals_, locals_, fromlist):
+    def _import(self, name, globals_=None, locals_=None, fromlist=[]):
         result = apply(self.realImport, (name, globals_, locals_, fromlist))
         self.newModules[name] = 1
+        print '_import', name, result
         return result
 
     def uninstall(self):
@@ -70,7 +71,7 @@ def reloadModulesWhere(condition=lambda moduleName: True):
     start = time.time()
     print "Reloading modules...\n[\n",
 
-    global rollbackImporter
+    #global rollbackImporter
 
     for modulename in sys.modules:
         if (modulename == '__main__' or

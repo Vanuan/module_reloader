@@ -3,97 +3,187 @@ Created on Oct 31, 2012
 
 @author: iyani
 '''
-from __future__ import with_statement
+
 import unittest
-import os
-import subprocess
-import time
-import ConfigParser
+import shutil
+
+import test_utils
 
 
-class Settings():
-    def __init__(self):
-        filename = os.path.dirname(__file__) + '/config.ini'
-        self.config = ConfigParser.RawConfigParser()
-        self.config.optionxform = str
-        self.config.read(filename)
+class TestWithoutUnloading(test_utils.TestBase):
 
-    def getPathToNgClient(self):
-        return self.config.get('nailgun', 'path_to_client')
+    def testImportFromMain(self):
+        #code = ('import module_reloader.reloader;'
+        #        ' module_reloader.reloader.reloadModifiedModules()')
+        #exitCode, out, err = self.executor.runCode(code)
+        #print out
+        #self.assertEqual(0, exitCode, err)
+        #self.assertEqual('Reloading modules...\n[\n\n]\nDone in 0.0 seconds.\n', out)
 
-    def getPathToJython(self):
-        return self.config.get('jython', 'path_to_jython')
-
-    def getPathToJythonLib(self):
-        return self.config.get('jython', 'path_to_jython_lib')
-
-
-class Test(unittest.TestCase):
-
-    def setUp(self):
-        settings = Settings()
-        self.path_to_nailgun_client = settings.getPathToNgClient()
-        self.path_to_jython = settings.getPathToJython()
-        self.path_to_jython_lib = settings.getPathToJythonLib()
-        self.reloader_path = os.path.dirname(__file__) + '/../src'
-        self.test_scripts_dir = os.path.dirname(__file__) + '/testScripts/'
-        # add folder to classpath
-        exitCode, _, err = self.addToClassPath(self.path_to_jython)
+        code = 'import module_reloader.reloader; import nailgun_reloader.hello; import sys; print sys.meta_path; print sys.modules[\'module_reloader.reloader\']._import_hook.global_modules_timestamps'
+        exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, err)
-        exitCode, _, err = self.addToClassPath(self.path_to_jython_lib)
-        self.assertEqual(0, exitCode, err)
-        exitCode, _, err = self.addToClassPath(self.reloader_path)
-        self.assertEqual(0, exitCode, err)
-        self.import_string = ('imported_from_imported\nfrom_module_import\n'
-                              'imported_module\n')
-        # prerequisites:
-        # running nailgun server
-        self.setUpModules()
+        print out
+        modules_timestamps = eval(out)
+        self.assertTrue(modules_timestamps, 'dict should not be empty')
+        self.assertNotEqual(modules_timestamps, {})
+        self.assertTrue('hello' not in modules_timestamps,
+                        'dict should not contain hello: ' + str(modules_timestamps))
 
-    def setUpModules(self):
-        code = ('import module_reloader.reloader;'
-                ' module_reloader.reloader.unloadAllModules()')
-        exitCode, _, err = self.runCode(code)
+        code = 'import nailgun_reloader.hello'
+        exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, 'nailgun_reloader.hello\n')
+
+        code = 'import nailgun_reloader.hello'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, '')
+
+        code = 'import sys; print sys.modules[\'module_reloader.reloader\']._import_hook.global_modules_timestamps'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        print out
+        modules_timestamps = eval(out)
+        self.assertTrue('nailgun_reloader.hello' in modules_timestamps)
+        self.assertEqual(modules_timestamps['hello'][0], ('hello.py'))
+
+    def testReloadShouldNotEmptyDict1(self):
         code = ('import module_reloader.reloader;'
                 ' module_reloader.reloader.reloadModifiedModules()')
-        exitCode, _, err = self.runCode(code)
+        exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, err)
+        self.assertEqual('Reloading modules...\n[\n\n]\nDone in 0.0 seconds.\n', out)
 
-    def execute(self, args):
-        p = subprocess.Popen(args, stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        exitCode = p.wait()
-        (out, err) = p.communicate()
+        code = 'import sys; print sys.modules[\'module_reloader.reloader\']._import_hook.global_modules_timestamps'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        modules_timestamps = eval(out)
+        self.assertEqual(modules_timestamps, {})
 
-        return (exitCode, out, err)
+        code = 'import hello1'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, 'hello1\n')
 
-    def executeNgClient(self, args):
-        result = self.execute([self.path_to_nailgun_client] + args)
-        return result
+        code = 'import hello1'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, '')
 
-    def addToClassPath(self, path):
-        result = self.executeNgClient(['ng-cp', path])
-        return result
+        code = 'import hello1'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, '')
 
-    def runCode(self, code):
-        result = self.executeNgClient(['org.python.util.jython', '-c', code])
-        return result
+        code = ('import module_reloader.reloader;'
+                ' module_reloader.reloader.reloadModifiedModules()')
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual('Reloading modules...\n[\n\n]\nDone in 0.0 seconds.\n', out)
 
-    def runScript(self, path):
-        result = self.executeNgClient(['org.python.util.jython', path])
-        return result
+        code = 'import sys; print sys.modules[\'module_reloader.reloader\']._import_hook.global_modules_timestamps'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        modules_timestamps = eval(out)
+        self.assertNotEqual(modules_timestamps, {})
 
-    def touch(self, fname, times=None):
-        with file(fname, 'a'):
-            os.utime(fname, times)
-        # wait 1 second to make sure that current time would be greater than
-        # file modification time
-        time.sleep(1)
+        self.assertTrue('hello' in modules_timestamps)
+        self.assertEqual(modules_timestamps['hello'][0], ('hello.py'))
+
+    def testReloadShouldNotEmptyDict2(self):
+        code = ('import module_reloader.reloader;'
+                ' module_reloader.reloader.reloadModifiedModules()')
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual('Reloading modules...\n[\n\n]\nDone in 0.0 seconds.\n', out)
+
+        code = 'import sys; print sys.modules[\'module_reloader.reloader\']._import_hook.global_modules_timestamps'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        modules_timestamps = eval(out)
+        self.assertEqual(modules_timestamps, {})
+
+        code = 'import hello '
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, 'hello\n')
+
+        code = 'import hello'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, '')
+
+        code = ('import module_reloader.reloader;'
+                ' module_reloader.reloader.reloadModifiedModules()')
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual('Reloading modules...\n[\n\n]\nDone in 0.0 seconds.\n', out)
+
+        code = 'import sys; print sys.modules[\'module_reloader.reloader\']._import_hook.global_modules_timestamps'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        modules_timestamps = eval(out)
+        self.assertTrue('hello' in modules_timestamps)
+        self.assertEqual(modules_timestamps['hello'][0], ('hello.py'))
+
+    def testDictionaryChangedSize(self):
+
+        self.reloadModifiedModules()
+        #self.unloadAllModules()
+#        self.executor.runCode('import test')
+#        #self.reloadModifiedModules()
+#        self.unloadAllModules()
+
+#        code = ('import module_reloader.reloader;'
+#                ' module_reloader.reloader.reloadModifiedModules()')
+#        exitCode, _, err = self.executor.runCode(code)
+#        self.assertEqual(0, exitCode, err)
+
+        test_name = self.test_scripts_module_dir + 'test.py'
+        without_import_name = self.test_scripts_module_dir + 'new_import_added/test_without_import_new.py'
+        with_import_name = self.test_scripts_module_dir + 'new_import_added/test_with_import_new.py'
+        # cp new_import_added/test_without_import.py to test.py
+        shutil.copy(without_import_name, test_name)
+
+        # import test
+        self.executor.runCode('import nailgun_reloader.test')
+        # cp new_import_added/test_with_impoirt.py to test.py
+        shutil.copy(with_import_name, test_name)
+
+        _, out, _ = self.executor.runCode('import sys; print sys.modules[\'nailgun_reloader.test\']')
+        print out
+
+        _, out, _ = self.executor.runCode('import sys; print sys.modules[\'module_reloader._import_hook\'].global_modules_timestamps')
+        print out
+
+        self.touch(test_name)
+
+        # reloadModified should succeed
+        code = ('import module_reloader.reloader;'
+                ' module_reloader.reloader.reloadModifiedModules()')
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertTrue('test' in out, out)
+
+        #self.unloadAllModules()
+
+
+class TestWithUnloading(test_utils.TestBase):
+
+    def setUp(self):
+        test_utils.TestBase.setUp(self)
+
+        # prerequisites:
+        # running nailgun server
+        self.reloadModifiedModules()
+
+    def tearDown(self):
+        self.unloadAllModules()
 
     def testModulesShouldNotBeReloadedIfNotChanged(self):
         # First import (set up)
-        exitCode, out, err = self.runScript(self.test_scripts_dir + 'main.py')
+        exitCode, out, err = self.executor.runScript(self.test_scripts_dir + 'main.py')
         self.assertEqual(0, exitCode, err)
         self.assertEqual(out, self.import_string)
         self.assertEqual(err, '')
@@ -101,31 +191,32 @@ class Test(unittest.TestCase):
         # Reload modified modules (exercise)
         code = ('import module_reloader.reloader;'
                 ' module_reloader.reloader.reloadModifiedModules()')
-        exitCode, out, err = self.runCode(code)
+        exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode)
         self.assertEqual(out, 'Reloading modules...\n'
                          '[\n\n]\nDone in 0.0 seconds.\n')
         self.assertEqual(err, '')
 
         # Next imports should not re-import modules (verify)
-        exitCode, out, err = self.runScript(self.test_scripts_dir + 'main.py')
+        exitCode, out, err = self.executor.runScript(self.test_scripts_dir + 'main.py')
         self.assertEqual(0, exitCode)
         self.assertEqual(out, '')
         self.assertEqual(err, '')
 
-    def testModulesShouldBeReloadedIfChanged(self):
+    def testModulesShouldBeReloadedIfChanged1(self):
         # First import and change (set up)
-        exitCode, out, err = self.runScript(self.test_scripts_dir + 'main.py')
+        exitCode, out, err = self.executor.runScript(self.test_scripts_dir + 'main.py')
         self.assertEqual(0, exitCode, err)
         self.assertEqual(out, self.import_string)
         self.assertEqual(err, '')
+
         self.touch(self.test_scripts_dir + 'imported_module.py')
         self.touch(self.test_scripts_dir + 'from_module_import.py')
 
         # Reload modified modules (exercise)
         code = ('import module_reloader.reloader;'
                 ' module_reloader.reloader.reloadModifiedModules()')
-        exitCode, out, err = self.runCode(code)
+        exitCode, out, err = self.executor.runCode(code)
 
         # Modules should be reloaded (verify)
         self.assertEqual(0, exitCode, err)
@@ -153,6 +244,41 @@ class Test(unittest.TestCase):
         self.assertEqual(out, '')
         self.assertEqual(err, '')
 
+    def testModulesShouldBeReloadedIfChanged2(self):
+        self.unloadAllModules()
+        self.reloadModifiedModules()
+
+        # First import and change (set up)
+        exitCode, out, err = self.executor.runCode('import hello')
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, 'hello\n')
+
+        self.touch(self.test_scripts_dir + 'hello.py')
+
+        # Reload modified modules (exercise)
+        code = ('import module_reloader.reloader;'
+                ' module_reloader.reloader.reloadModifiedModules()')
+        exitCode, out, err = self.executor.runCode(code)
+
+        # Modules should be reloaded (verify)
+        self.assertEqual(0, exitCode, out + err)
+        self.assertTrue('Reloading modules...\n'
+                            '[\n'
+                            '... reloading '
+                            '\'hello\' hello\n'
+                            '\n]\n'
+                            'Done in 0.0' in out, out)
+        self.assertEqual(err, '')
+
+    def testTimestams(self):
+        code = 'import sys; print sys.modules[\'module_reloader.reloader\']._import_hook.global_modules_timestamps'
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(eval(out), {})
+
+
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testReload']
+    import sys
+    sys.argv = ['', 'TestWithoutUnloading.testImportFromMain']
+    #sys.argv = ['', 'TestWithUnloading.testModulesShouldBeReloadedIfChanged3']
     unittest.main()
