@@ -37,6 +37,7 @@ class RollbackImporter:
     def _import(self, name, globals_=None, locals_=None, fromlist=[]):
         result = apply(self.realImport, (name, globals_, locals_, fromlist))
         self.newModules[name] = 1
+        print '_import', name, result
         return result
 
     def uninstall(self):
@@ -70,7 +71,7 @@ def reloadModulesWhere(condition=lambda moduleName: True):
     start = time.time()
     print "Reloading modules...\n[\n",
 
-    global rollbackImporter
+    #global rollbackImporter
 
     for modulename in sys.modules:
         if (modulename == '__main__' or
@@ -81,13 +82,13 @@ def reloadModulesWhere(condition=lambda moduleName: True):
             pass
         elif condition(modulename):
             reload(sys.modules[modulename])
-            rollbackImporter = RollbackImporter()
+            #rollbackImporter = RollbackImporter()
         else:
             pass
     print "\n]\nDone in", round(time.time() - start, 2), "seconds."
 
-    if rollbackImporter:
-        rollbackImporter.uninstall()
+    #if rollbackImporter:
+    #    rollbackImporter.uninstall()
 #    rollbackImporter = RollbackImporter()
 
 

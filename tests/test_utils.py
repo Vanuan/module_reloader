@@ -86,6 +86,7 @@ class TestBase(unittest.TestCase):
         self.path_to_jython_lib = settings.getPathToJythonLib()
         self.reloader_path = os.path.dirname(__file__) + '/../src'
         self.test_scripts_dir = os.path.dirname(__file__) + '/testScripts/'
+        self.test_scripts_module_dir = self.test_scripts_dir + '/nailgun_reloader/'
         # add folder to classpath
         exitCode, _, err = self.executor.addToClassPath(self.path_to_jython)
         self.assertEqual(0, exitCode, err)
