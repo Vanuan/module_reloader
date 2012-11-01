@@ -44,6 +44,8 @@ class Test(unittest.TestCase):
         self.assertEqual(0, exitCode, err)
         exitCode, _, err = self.addToClassPath(self.reloader_path)
         self.assertEqual(0, exitCode, err)
+        self.import_string = ('imported_from_imported\nfrom_module_import\n'
+                              'imported_module\n')
         # prerequisites:
         # running nailgun server
         self.setUpModules()
@@ -93,7 +95,7 @@ class Test(unittest.TestCase):
         # First import (set up)
         exitCode, out, err = self.runScript(self.test_scripts_dir + 'main.py')
         self.assertEqual(0, exitCode, err)
-        self.assertEqual(out, 'imported_from_imported\nimported_module\n')
+        self.assertEqual(out, self.import_string)
         self.assertEqual(err, '')
 
         # Reload modified modules (exercise)
@@ -115,9 +117,10 @@ class Test(unittest.TestCase):
         # First import and change (set up)
         exitCode, out, err = self.runScript(self.test_scripts_dir + 'main.py')
         self.assertEqual(0, exitCode, err)
-        self.assertEqual(out, 'imported_from_imported\nimported_module\n')
+        self.assertEqual(out, self.import_string)
         self.assertEqual(err, '')
         self.touch(self.test_scripts_dir + 'imported_module.py')
+        self.touch(self.test_scripts_dir + 'from_module_import.py')
 
         # Reload modified modules (exercise)
         code = ('import module_reloader.reloader;'
@@ -129,11 +132,26 @@ class Test(unittest.TestCase):
         self.assertTrue('Reloading modules...\n'
                             '[\n'
                             '... reloading '
+                            '\'from_module_import\' from_module_import\n'
+                            '... reloading '
                             '\'imported_module\' imported_module\n'
                             '\n]\n'
                             'Done in 0.0' in out, out)
         self.assertEqual(err, '')
 
+    def testUseWithoutImport(self):
+        # First import (set up)
+        exitCode, out, err = self.runScript(self.test_scripts_dir + 'main.py')
+        self.assertEqual(0, exitCode, err)
+        self.assertEqual(out, self.import_string)
+        self.assertEqual(err, '')
+
+        # use module without import
+        exitCode, out, err = self.runScript(self.test_scripts_dir +
+                                            'use_module_without_import.py')
+        self.assertEqual(0, exitCode, out + err)
+        self.assertEqual(out, '')
+        self.assertEqual(err, '')
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testReload']

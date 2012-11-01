@@ -50,7 +50,7 @@ class RollbackImporter:
         __builtin__.__import__ = self.realImport
 
 
-rollbackImporter = RollbackImporter()
+#rollbackImporter = RollbackImporter()
 
 
 def reloadModifiedModules():
@@ -81,13 +81,13 @@ def reloadModulesWhere(condition=lambda moduleName: True):
             pass
         elif condition(modulename):
             reload(sys.modules[modulename])
-            rollbackImporter = RollbackImporter()
+            #rollbackImporter = RollbackImporter()
         else:
             pass
     print "\n]\nDone in", round(time.time() - start, 2), "seconds."
 
-    if rollbackImporter:
-        rollbackImporter.uninstall()
+    #if rollbackImporter:
+     #   rollbackImporter.uninstall()
 #    rollbackImporter = RollbackImporter()
 
 
