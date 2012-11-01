@@ -34,7 +34,7 @@ class RollbackImporter:
         self.newModules = {}
 
     # pep8-ignore: E241
-    def _import(self, name, globals_, locals_, fromlist):
+    def _import(self, name, globals_=None, locals_=None, fromlist=[]):
         result = apply(self.realImport, (name, globals_, locals_, fromlist))
         self.newModules[name] = 1
         return result
