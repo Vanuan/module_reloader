@@ -10,6 +10,10 @@ import shutil
 import test_utils
 
 
+class TestWithRestart(test_utils.TestBase):
+    pass
+
+
 class TestWithoutUnloading(test_utils.TestBase):
 
     def testImportFromMain(self):
@@ -20,7 +24,10 @@ class TestWithoutUnloading(test_utils.TestBase):
         #self.assertEqual(0, exitCode, err)
         #self.assertEqual('Reloading modules...\n[\n\n]\nDone in 0.0 seconds.\n', out)
 
-        code = 'import module_reloader.reloader; import nailgun_reloader.hello; import sys; print sys.meta_path; print sys.modules[\'module_reloader.reloader\']._import_hook.global_modules_timestamps'
+        code = ('import module_reloader.reloader; import nailgun_reloader.hello;'
+                ' import sys; print sys.meta_path;'
+                'print sys.modules[\'module_reloader.reloader\']._import_hook.'
+                'global_modules_timestamps')
         exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, err)
         print out
@@ -173,13 +180,7 @@ class TestWithUnloading(test_utils.TestBase):
 
     def setUp(self):
         test_utils.TestBase.setUp(self)
-
-        # prerequisites:
-        # running nailgun server
         self.reloadModifiedModules()
-
-    def tearDown(self):
-        self.unloadAllModules()
 
     def testModulesShouldNotBeReloadedIfNotChanged(self):
         # First import (set up)
@@ -205,13 +206,14 @@ class TestWithUnloading(test_utils.TestBase):
 
     def testModulesShouldBeReloadedIfChanged1(self):
         # First import and change (set up)
-        exitCode, out, err = self.executor.runScript(self.test_scripts_dir + 'main.py')
+        exitCode, out, err = self.executor.runScript(
+                                self.test_scripts_module_dir + 'main.py')
         self.assertEqual(0, exitCode, err)
-        self.assertEqual(out, self.import_string)
-        self.assertEqual(err, '')
+        #self.assertEqual(out, 'imported_from_imported\nfrom_module_import\nimported_module\n')
+        #self.assertEqual(err, '')
 
-        self.touch(self.test_scripts_dir + 'imported_module.py')
-        self.touch(self.test_scripts_dir + 'from_module_import.py')
+        self.touch(self.test_scripts_module_dir + 'imported_module.py')
+        self.touch(self.test_scripts_module_dir + 'from_module_import.py')
 
         # Reload modified modules (exercise)
         code = ('import module_reloader.reloader;'
@@ -249,9 +251,9 @@ class TestWithUnloading(test_utils.TestBase):
         self.reloadModifiedModules()
 
         # First import and change (set up)
-        exitCode, out, err = self.executor.runCode('import hello')
+        exitCode, out, err = self.executor.runCode('import nailgun_reloader.hello')
         self.assertEqual(0, exitCode, err)
-        self.assertEqual(out, 'hello\n')
+        self.assertEqual(out, 'nailgun_reloader.hello\n')
 
         self.touch(self.test_scripts_dir + 'hello.py')
 
@@ -275,10 +277,17 @@ class TestWithUnloading(test_utils.TestBase):
         exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, err)
         self.assertEqual(eval(out), {})
+        
 
+
+class TestServer(test_utils.TestBase):
+    def testServerStartStop(self):
+        self.assertEqual((0, 'Hello\n', ''),
+                         self.executor.runCode('print "Hello"'))
 
 if __name__ == "__main__":
     import sys
-    sys.argv = ['', 'TestWithoutUnloading.testImportFromMain']
+    sys.argv = ['', 'TestWithUnloading.testModulesShouldBeReloadedIfChanged2']
     #sys.argv = ['', 'TestWithUnloading.testModulesShouldBeReloadedIfChanged3']
+    #sys.argv = ['', 'TestWithoutUnloading.testDictionaryChangedSize']
     unittest.main()

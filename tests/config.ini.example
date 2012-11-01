@@ -1,5 +1,7 @@
 [nailgun]
 path_to_client=ng
+path_to_server=nailgun-0.7.1.jar
+
 
 [jython]
 path_to_jython=jython.jar

@@ -5,6 +5,7 @@ import ConfigParser
 import unittest
 import subprocess
 import time
+import signal
 
 
 class Settings():
@@ -17,6 +18,9 @@ class Settings():
     def getPathToNgClient(self):
         return self.config.get('nailgun', 'path_to_client')
 
+    def getPathToNgServer(self):
+        return self.config.get('nailgun', 'path_to_server')
+
     def getPathToJython(self):
         return self.config.get('jython', 'path_to_jython')
 
@@ -26,8 +30,9 @@ class Settings():
 
 class Executor():
 
-    def __init__(self, path_to_nailgun_client):
+    def __init__(self, path_to_nailgun_client, path_to_nailgun_server):
         self.path_to_nailgun_client = path_to_nailgun_client
+        self.path_to_nailgun_server = path_to_nailgun_server
 
     def executeNgClient(self, args):
         result = execute([self.path_to_nailgun_client] + args)
@@ -45,11 +50,29 @@ class Executor():
         result = self.executeNgClient(['org.python.util.jython', path])
         return result
 
+    def startServer(self):
+        args = ['java', '-jar', self.path_to_nailgun_server]
+        self.server = subprocess.Popen(args, stdin=subprocess.PIPE,
+                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out = self.server.stdout.readline()
+
+        return out
+
+    def stopServer(self):
+        #(out, err) = (self.server.stdout.readline(), '')
+        try:
+            self.server.send_signal(signal.SIGTERM)
+        except Exception, e:
+            print e
+        self.server.wait()
+        #return (out, err)
+
 
 def execute(args):
     p = subprocess.Popen(args, stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     exitCode = p.wait()
+
     (out, err) = p.communicate()
 
     return (exitCode, out, err)
@@ -81,12 +104,17 @@ class TestBase(unittest.TestCase):
 
     def setUp(self):
         settings = Settings()
-        self.executor = Executor(settings.getPathToNgClient())
+        self.executor = Executor(settings.getPathToNgClient(), settings.getPathToNgServer())
         self.path_to_jython = settings.getPathToJython()
         self.path_to_jython_lib = settings.getPathToJythonLib()
         self.reloader_path = os.path.dirname(__file__) + '/../src'
         self.test_scripts_dir = os.path.dirname(__file__) + '/testScripts/'
         self.test_scripts_module_dir = self.test_scripts_dir + '/nailgun_reloader/'
+
+        self.assertEqual('NGServer started on all interfaces, port 2113.\n',
+                         self.executor.startServer())
+        time.sleep(0.1)
+
         # add folder to classpath
         exitCode, _, err = self.executor.addToClassPath(self.path_to_jython)
         self.assertEqual(0, exitCode, err)
@@ -96,4 +124,6 @@ class TestBase(unittest.TestCase):
         self.assertEqual(0, exitCode, err)
         exitCode, _, err = self.executor.addToClassPath(self.test_scripts_dir)
         self.assertEqual(0, exitCode, err)
-        self.executor.addToClassPath('/home/iyani/.m2/repository/commons-cli/commons-cli/1.2/commons-cli-1.2.jar')
+
+    def tearDown(self):
+        self.executor.stopServer()

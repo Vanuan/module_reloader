@@ -16,23 +16,18 @@ global_modules_timestamps = {}
 class Finder(object):
 
     def find_module(self, moduleFullname, path=None):
-        print 'searching', moduleFullname, 'in', path
+        #print 'searching', moduleFullname, 'in', path
         moduleFile = None
         try:
-            if '.' in moduleFullname:
-                package = moduleFullname.split('.')[0]
-                (moduleFile,
-                 moduleFileName,
-                 _) = imp.find_module(moduleFullname, path)
-                imp.load_module(package, path)
-
-
             # This function does not handle hierarchical module names
             # (names containing dots).
+            if '.' in moduleFullname:
+                print ('warning: hierarchical module names are not supported',
+                       moduleFullname)
+
             (moduleFile,
              moduleFileName,
              _) = imp.find_module(moduleFullname, path)
-            print 'found', moduleFileName
             modifiedTimeStamp = time.ctime(os.path.getmtime(moduleFileName))
             if moduleFullname not in sys.builtin_module_names:
                 global_modules_timestamps[moduleFullname] = (moduleFileName,
