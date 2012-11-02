@@ -42,6 +42,12 @@ class Executor():
         result = self.executeNgClient(['ng-cp', path])
         return result
 
+    def addToPythonPath(self, path):
+        result = self.runCode('import sys, os\n'
+                              'if os.path.exists(\'%s\'): sys.path.insert(1, \'%s\')'
+                              % (path, path))
+        return result
+
     def runCode(self, code):
         result = self.executeNgClient(['org.python.util.jython', '-c', code])
         return result
@@ -114,16 +120,22 @@ class TestBase(unittest.TestCase):
         self.assertEqual('NGServer started on all interfaces, port 2113.\n',
                          self.executor.startServer())
         time.sleep(0.1)
+        self.assertEqual(None, self.executor.server.poll(),
+                         'seems like nailgun was already started')
 
-        # add folder to classpath
-        exitCode, _, err = self.executor.addToClassPath(self.path_to_jython)
-        self.assertEqual(0, exitCode, err)
-        exitCode, _, err = self.executor.addToClassPath(self.path_to_jython_lib)
-        self.assertEqual(0, exitCode, err)
-        exitCode, _, err = self.executor.addToClassPath(self.reloader_path)
-        self.assertEqual(0, exitCode, err)
-        exitCode, _, err = self.executor.addToClassPath(self.test_scripts_dir)
-        self.assertEqual(0, exitCode, err)
+        # setup classpath and pythonpath
+        try:
+            exitCode, _, err = self.executor.addToClassPath(self.path_to_jython)
+            self.assertEqual(0, exitCode, err)
+            exitCode, _, err = self.executor.addToPythonPath(self.path_to_jython_lib)
+            self.assertEqual(0, exitCode, err)
+            exitCode, _, err = self.executor.addToPythonPath(self.reloader_path)
+            self.assertEqual(0, exitCode, err)
+            exitCode, _, err = self.executor.addToPythonPath(self.test_scripts_dir)
+            self.assertEqual(0, exitCode, err)
+        except Exception, e:
+            self.executor.stopServer()
+            raise e
 
     def tearDown(self):
         self.executor.stopServer()

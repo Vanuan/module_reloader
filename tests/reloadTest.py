@@ -180,7 +180,7 @@ class TestWithUnloading(test_utils.TestBase):
 
     def setUp(self):
         test_utils.TestBase.setUp(self)
-        self.reloadModifiedModules()
+        #self.reloadModifiedModules()
 
     def testModulesShouldNotBeReloadedIfNotChanged(self):
         # First import (set up)
@@ -209,8 +209,8 @@ class TestWithUnloading(test_utils.TestBase):
         exitCode, out, err = self.executor.runScript(
                                 self.test_scripts_module_dir + 'main.py')
         self.assertEqual(0, exitCode, err)
-        #self.assertEqual(out, 'imported_from_imported\nfrom_module_import\nimported_module\n')
-        #self.assertEqual(err, '')
+        self.assertEqual(out, 'imported_from_imported\nfrom_module_import\nimported_module\n')
+        self.assertEqual(err, '')
 
         self.touch(self.test_scripts_module_dir + 'imported_module.py')
         self.touch(self.test_scripts_module_dir + 'from_module_import.py')
@@ -247,15 +247,16 @@ class TestWithUnloading(test_utils.TestBase):
         self.assertEqual(err, '')
 
     def testModulesShouldBeReloadedIfChanged2(self):
-        self.unloadAllModules()
-        self.reloadModifiedModules()
-
         # First import and change (set up)
+        code = ('import module_reloader.reloader')
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, out + err)
+
         exitCode, out, err = self.executor.runCode('import nailgun_reloader.hello')
         self.assertEqual(0, exitCode, err)
         self.assertEqual(out, 'nailgun_reloader.hello\n')
 
-        self.touch(self.test_scripts_dir + 'hello.py')
+        self.touch(self.test_scripts_module_dir + 'hello.py')
 
         # Reload modified modules (exercise)
         code = ('import module_reloader.reloader;'
@@ -277,7 +278,6 @@ class TestWithUnloading(test_utils.TestBase):
         exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, err)
         self.assertEqual(eval(out), {})
-        
 
 
 class TestServer(test_utils.TestBase):

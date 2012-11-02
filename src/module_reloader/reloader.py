@@ -18,7 +18,8 @@ import os
 import time
 import sys
 
-import _import_hook  # import only once, do not reload
+#import _import_hook  # import only once, do not reload
+import _time_stamps  # import only once, do not reload
 import __builtin__
 
 
@@ -60,7 +61,7 @@ def reloadModifiedModules():
 
     Reloads only modules that are modified.
     '''
-    reloadModulesWhere(condition=__isModified)
+    reloadModulesWhere(condition=_time_stamps.isModified)
 
 
 def reloadAllModules():
@@ -81,6 +82,7 @@ def reloadModulesWhere(condition=lambda moduleName: True):
             ):
             pass
         elif condition(modulename):
+            print "... reloading '" + modulename + "'",
             reload(sys.modules[modulename])
             #rollbackImporter = RollbackImporter()
         else:
@@ -88,33 +90,17 @@ def reloadModulesWhere(condition=lambda moduleName: True):
     print "\n]\nDone in", round(time.time() - start, 2), "seconds."
 
     #if rollbackImporter:
-     #   rollbackImporter.uninstall()
+    #   rollbackImporter.uninstall()
 #    rollbackImporter = RollbackImporter()
 
 
-def unloadAllModules():
-    exceptions = sys.builtin_module_names + ('_import_hook', 'reloader',
-                                             'module_reloader', '__main__')
-    moduleNames = filter(lambda x: x not in exceptions, sys.modules.keys())
-    for modulename in moduleNames:
-        del(sys.modules[modulename])
+#def unloadAllModules():
+#    exceptions = sys.builtin_module_names + ('_import_hook', 'reloader',
+#                                             'module_reloader', '__main__')
+#    moduleNames = filter(lambda x: x not in exceptions, sys.modules.keys())
+#    for modulename in moduleNames:
+#        del(sys.modules[modulename])
 
 
 def __none(moduleName):
     return False
-
-
-def __isModified(moduleName):
-    '''
-    Determines whether a module was modified after the last reload
-    '''
-    if moduleName in _import_hook.global_modules_timestamps:
-        moduleFileName, oldModuleMtime = \
-                _import_hook.global_modules_timestamps[moduleName]
-        currentModuleMtime = time.ctime(os.path.getmtime(moduleFileName))
-        condition = oldModuleMtime != currentModuleMtime
-        if condition:
-            print "... reloading '" + moduleName + "'",
-        return condition
-    else:
-        return False
