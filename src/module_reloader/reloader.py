@@ -14,7 +14,6 @@ reloader.reloadModifiedModules()
 
 @author: Vanuan
 '''
-import os
 import time
 import sys
 
@@ -54,7 +53,6 @@ class RollbackImporter:
 
 #rollbackImporter = RollbackImporter()
 
-
 def reloadModifiedModules():
     '''
     Call this every time you run a Jython script.
@@ -83,7 +81,9 @@ def reloadModulesWhere(condition=lambda moduleName: True):
             pass
         elif condition(modulename):
             print "... reloading '" + modulename + "'",
-            reload(sys.modules[modulename])
+            module = sys.modules[modulename]
+            reload(module)
+            _time_stamps.updateTimeStamp(module)
             #rollbackImporter = RollbackImporter()
         else:
             pass
@@ -104,3 +104,7 @@ def reloadModulesWhere(condition=lambda moduleName: True):
 
 def __none(moduleName):
     return False
+
+
+def getTimeStamps():
+    return _time_stamps.global_modules_timestamps

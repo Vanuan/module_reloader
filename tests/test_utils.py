@@ -43,9 +43,9 @@ class Executor():
         return result
 
     def addToPythonPath(self, path):
-        result = self.runCode('import sys, os\n'
-                              'if os.path.exists(\'%s\'): sys.path.insert(1, \'%s\')'
-                              % (path, path))
+        result = self.runCode('import sys\n'
+                              'sys.path.insert(1, \'%s\')'
+                              % (path))
         return result
 
     def runCode(self, code):
@@ -110,12 +110,15 @@ class TestBase(unittest.TestCase):
 
     def setUp(self):
         settings = Settings()
-        self.executor = Executor(settings.getPathToNgClient(), settings.getPathToNgServer())
+        self.executor = Executor(settings.getPathToNgClient(),
+                                 settings.getPathToNgServer())
         self.path_to_jython = settings.getPathToJython()
         self.path_to_jython_lib = settings.getPathToJythonLib()
         self.reloader_path = os.path.dirname(__file__) + '/../src'
         self.test_scripts_dir = os.path.dirname(__file__) + '/testScripts/'
-        self.test_scripts_module_dir = self.test_scripts_dir + '/nailgun_reloader/'
+        self.tests_module = 'nailgun_reloader'
+        self.test_scripts_module_dir = (self.test_scripts_dir +
+                                        self.tests_module + '/')
 
         self.assertEqual('NGServer started on all interfaces, port 2113.\n',
                          self.executor.startServer())
@@ -123,7 +126,7 @@ class TestBase(unittest.TestCase):
         self.assertEqual(None, self.executor.server.poll(),
                          'seems like nailgun was already started')
 
-        # setup classpath and pythonpath
+        # setup class path and python path
         try:
             exitCode, _, err = self.executor.addToClassPath(self.path_to_jython)
             self.assertEqual(0, exitCode, err)
@@ -139,3 +142,10 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.executor.stopServer()
+
+    def assertRunCodeOutEqual(self, expected, result):
+        (exitCode, out, err) = result
+        self.assertEquals(0, exitCode, out + err)
+        self.assertEquals(expected, out,
+                          "\nExpected: '" + (expected) +
+                          "'\nActual: '" + (out) + "'")
