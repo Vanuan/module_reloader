@@ -140,15 +140,6 @@ def _reload(m, visited):
     # module dependency graph.
     visited.add(name)
 
-    # Start by reloading all of our dependencies in the reverse order.  Note
-    # that we recursively call ourself to perform the nested reloads.
-    dependencies = getDependencies(name)
-
-    if dependencies is not None:
-        for dependency in reversed(dependencies):
-            if dependency not in visited:
-                _reload(sys.modules[dependency], visited)
-
     # Clear this module's list of dependencies.  Some import statements
     # may have been removed.  We'll rebuild the dependency list as part
     # of the reload operation below.
@@ -166,8 +157,7 @@ def _reload(m, visited):
     print "... reloading '" + name + "'",
     reload(m)
 
-    # now that we have returned from recursion,
-    # reload dependants of this module
+    # now reload dependants of this module
     dependants = getDependants(name)
     if dependants is not None:
         for dependant in reversed(dependants):

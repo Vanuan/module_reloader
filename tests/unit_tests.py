@@ -235,6 +235,18 @@ class UnitTest(test_utils.TestBase):
 
         self.importWithDependencyAgain()
 
+    def testDoNotReloadDependenciesIfDependantChanged(self):
+        # setup
+        self.setUpReloader()
+        self.importWithDependency()
+
+        # exercise & verify
+        self.touch(self.buildFilename('dependant'))
+
+        self.reloadModified(['dependant'])
+
+        self.importWithDependencyAgain()
+
 
 if __name__ == "__main__":
     unittest.main()
