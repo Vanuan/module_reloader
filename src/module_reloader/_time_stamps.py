@@ -41,11 +41,13 @@ def updateTimeStamp(module):
 
 
 def getFileName(module):
+    if not hasattr(module, '__file__') or module.__file__ is None:
+        return None
+    if '__pyclasspath__' in module.__file__:
+        raise Exception(module.__file__ + ' contains __pyclasspath__')
     moduleFileName = os.path.abspath(module.__file__)
     if moduleFileName.endswith('$py.class'):
         moduleFileName = moduleFileName[:-len('$py.class')] + '.py'
-    if '__pyclasspath__' in module.__file__:
-        raise Exception(module.__file__ + ' contains __pyclasspath__')
     if not os.path.exists(moduleFileName):
         # file is probably in an egg or jar
         return None
