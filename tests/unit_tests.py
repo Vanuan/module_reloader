@@ -7,6 +7,7 @@ Created on Oct 31, 2012
 import unittest
 import os
 import time
+import re
 
 import test_utils
 
@@ -69,6 +70,14 @@ class UnitTest(test_utils.TestBase):
         result = self.executor.runCode(code)
         self.assertRunCodeOutEqual('', result)
 
+    def importWithDependency(self):
+        dependant_module = '%s.dependant' % self.tests_module
+        dependency_module = '%s.dependency' % self.tests_module
+        code = 'import %s' % dependant_module
+        result = self.executor.runCode(code)
+        self.assertRunCodeOutEqual(dependency_module + '\n' +
+                                   dependant_module + '\n', result)
+
     def buildExpectedReloading(self, modulenames):
         reloadingString = 'Reloading modules...\n[\n'
         for name in modulenames:
@@ -83,7 +92,19 @@ class UnitTest(test_utils.TestBase):
                 ' module_reloader.reloader.reloadModifiedModules()')
         exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, err)
-        self.assertEqual(self.buildExpectedReloading(modulenames), out)
+        pattern = re.compile('0.01? seconds.')
+        out = pattern.sub('', out)
+        expected = pattern.sub('', self.buildExpectedReloading(modulenames))
+        self.assertEqual(expected, out)
+
+    def getDependencies(self, dependant):
+        code = ('import module_reloader.reloader\n'
+                'print module_reloader.reloader.getDependencies(\'' +
+                self.tests_module + '.' + dependant + '\')')
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        dependencies = eval(out)
+        return dependencies
 
     def testImportShouldSaveTimeStamps(self):
         '''
@@ -150,6 +171,18 @@ class UnitTest(test_utils.TestBase):
         # verify
         actual_timestamps = self.getActualTimeStamps()
         self.assertEqual(expected_timestamps, actual_timestamps)
+
+    def testGetDependency(self):
+        # setup
+        self.setUpReloader()
+        self.importWithDependency()
+
+        # exercise
+        dependencies = self.getDependencies('dependant')
+
+        # verify
+        expectedDependencies = [self.tests_module + '.dependency']
+        self.assertEqual(expectedDependencies, dependencies)
 
 
 if __name__ == "__main__":

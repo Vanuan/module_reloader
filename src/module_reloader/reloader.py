@@ -108,3 +108,7 @@ def __none(moduleName):
 
 def getTimeStamps():
     return _time_stamps.global_modules_timestamps
+
+
+def getDependencies(name):
+    return _time_stamps._dependencies[name]

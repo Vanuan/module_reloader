@@ -12,6 +12,7 @@ exceptions = [__name__,
               'module_reloader',
               'module_reloader.reloader',
               ] + list(sys.builtin_module_names)
+_dependencies = {}
 
 
 def __always(modulename, module):
@@ -83,11 +84,20 @@ class Importer:
         "Creates an instance and installs as the global importer"
         self.realImport = __builtin__.__import__
         __builtin__.__import__ = self._import
+        self._parent = None
 
     def _import(self, name, globals_=None, locals_=None, fromlist=[]):
-        result = apply(self.realImport, (name, globals_, locals_, fromlist))
+        parent = self._parent
+        self._parent = name
+
+        module = apply(self.realImport, (name, globals_, locals_, fromlist))
         addMissingTimeStamps()
-        return result
+
+        if parent is not None and hasattr(module, '__file__'):
+            l = _dependencies.setdefault(parent, [])
+            l.append(module.__name__)
+
+        return module
 
 #setupHook()  # make sure to call this only once
 imorter = Importer()
