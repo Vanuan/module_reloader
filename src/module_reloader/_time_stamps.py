@@ -13,6 +13,7 @@ exceptions = [__name__,
               'module_reloader.reloader',
               ] + list(sys.builtin_module_names)
 _dependencies = {}
+_dependants = {}
 
 
 def __always(modulename, module):
@@ -62,6 +63,20 @@ def addMissingTimeStamps():
     updateTimeStampsWhere(updateCondition=moduleIsMissing)
 
 
+def deleteDependencies(name):
+    try:
+        del _dependencies[name]
+    except KeyError:
+        pass
+
+
+def deleteDependants(name):
+    try:
+        del _dependants[name]
+    except KeyError:
+        pass
+
+
 def isModified(moduleName):
     '''
     Determines whether a module was modified after the last reload
@@ -84,20 +99,88 @@ class Importer:
         "Creates an instance and installs as the global importer"
         self.realImport = __builtin__.__import__
         __builtin__.__import__ = self._import
-        self._parent = None
+        self._dependant = None
 
     def _import(self, name, globals_=None, locals_=None, fromlist=[]):
-        parent = self._parent
-        self._parent = name
+        dependant = self._dependant
+        self._dependant = name
 
         module = apply(self.realImport, (name, globals_, locals_, fromlist))
         addMissingTimeStamps()
 
-        if parent is not None and hasattr(module, '__file__'):
-            l = _dependencies.setdefault(parent, [])
-            l.append(module.__name__)
+        # If we have a parent (i.e. this is a nested import) and this is a
+        # reloadable (source-based) module, we append ourself to our parent's
+        # dependency list.
+        if dependant is not None and hasattr(module, '__file__'):
+            dependencies = _dependencies.setdefault(dependant, [])
+            dependency_name = module.__name__
+            dependencies.append(dependency_name)
+
+            dependant_m = sys.modules.get(dependant, None)
+            if dependant_m is not None and hasattr(dependant_m, '__file__'):
+                dependants = _dependants.setdefault(dependency_name, [])
+                dependants.append(dependant_m.__name__)
+
+        # Lastly, we always restore our global _parent pointer.
+        self._dependant = dependant
 
         return module
 
+
 #setupHook()  # make sure to call this only once
-imorter = Importer()
+importer = Importer()
+
+
+def _reload(m, visited):
+    """Internal module reloading routine."""
+    name = m.__name__
+
+    # Start by adding this module to our set of visited modules.  We use
+    # this set to avoid running into infinite recursion while walking the
+    # module dependency graph.
+    visited.add(name)
+
+    # Start by reloading all of our dependencies in the reverse order.  Note
+    # that we recursively call ourself to perform the nested reloads.
+    dependencies = getDependencies(name)
+
+    if dependencies is not None:
+        for dependency in reversed(dependencies):
+            if dependency not in visited:
+                _reload(sys.modules[dependency], visited)
+
+    # Clear this module's list of dependencies.  Some import statements
+    # may have been removed.  We'll rebuild the dependency list as part
+    # of the reload operation below.
+    deleteDependencies(name)
+    #deleteDependants(name)
+
+    # Because we're triggering a reload and not an import, the module
+    # itself won't run through our _import hook.  In order for this
+    # module's dependencies (which will pass through the _import hook) to
+    # be associated with this module, we need to set our parent pointer
+    # beforehand.
+    importer._dependant = name
+
+    # Perform the reload operation.
+    print "... reloading '" + name + "'",
+    reload(m)
+
+    # now that we have returned from recursion,
+    # reload dependants of this module
+    dependants = getDependants(name)
+    if dependants is not None:
+        for dependant in reversed(dependants):
+            if dependant not in visited:
+                _reload(sys.modules[dependant], visited)
+
+    # Reset our parent pointer.
+    importer._dependant = None
+
+
+def getDependencies(name):
+    return _dependencies.get(name, None)
+
+
+def getDependants(name):
+    return _dependants.get(name, None)

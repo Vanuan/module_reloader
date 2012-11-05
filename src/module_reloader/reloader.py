@@ -80,9 +80,8 @@ def reloadModulesWhere(condition=lambda moduleName: True):
             ):
             pass
         elif condition(modulename):
-            print "... reloading '" + modulename + "'",
             module = sys.modules[modulename]
-            reload(module)
+            reloadWithDependants(module)
             _time_stamps.updateTimeStamp(module)
             #rollbackImporter = RollbackImporter()
         else:
@@ -92,6 +91,13 @@ def reloadModulesWhere(condition=lambda moduleName: True):
     #if rollbackImporter:
     #   rollbackImporter.uninstall()
 #    rollbackImporter = RollbackImporter()
+
+
+def reloadWithDependants(module):
+    """Reload an existing module.
+
+    Any known dependencies of the module will also be reloaded."""
+    _time_stamps._reload(module, set())
 
 
 #def unloadAllModules():
@@ -111,4 +117,8 @@ def getTimeStamps():
 
 
 def getDependencies(name):
-    return _time_stamps._dependencies[name]
+    return _time_stamps.getDependencies(name)
+
+
+def getDependants(name):
+    return _time_stamps.getDependants(name)

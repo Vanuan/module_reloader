@@ -30,8 +30,6 @@ class TestReloading(test_utils.TestBase):
         self.assertEqual(0, errCode, err)
         return eval(out)
 
-
-
     def testReloadShouldNotEmptyDict2(self):
         code = ('import module_reloader.reloader;'
                 ' module_reloader.reloader.reloadModifiedModules()')

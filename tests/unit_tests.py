@@ -78,12 +78,18 @@ class UnitTest(test_utils.TestBase):
         self.assertRunCodeOutEqual(dependency_module + '\n' +
                                    dependant_module + '\n', result)
 
+    def importWithDependencyAgain(self):
+        dependant_module = '%s.dependant' % self.tests_module
+        code = 'import %s' % dependant_module
+        result = self.executor.runCode(code)
+        self.assertRunCodeOutEqual('', result)
+
     def buildExpectedReloading(self, modulenames):
         reloadingString = 'Reloading modules...\n[\n'
         for name in modulenames:
             modulename = self.tests_module + '.' + name
             reloadingString += ('... reloading \'' + modulename + '\' ' +
-                                modulename + ' ')
+                                modulename + '\n')
         reloadingString += '\n]\nDone in 0.0 seconds.\n'
         return reloadingString
 
@@ -91,7 +97,7 @@ class UnitTest(test_utils.TestBase):
         code = ('import module_reloader.reloader;'
                 ' module_reloader.reloader.reloadModifiedModules()')
         exitCode, out, err = self.executor.runCode(code)
-        self.assertEqual(0, exitCode, err)
+        self.assertEqual(0, exitCode, out + err)
         pattern = re.compile('0.01? seconds.')
         out = pattern.sub('', out)
         expected = pattern.sub('', self.buildExpectedReloading(modulenames))
@@ -101,6 +107,15 @@ class UnitTest(test_utils.TestBase):
         code = ('import module_reloader.reloader\n'
                 'print module_reloader.reloader.getDependencies(\'' +
                 self.tests_module + '.' + dependant + '\')')
+        exitCode, out, err = self.executor.runCode(code)
+        self.assertEqual(0, exitCode, err)
+        dependencies = eval(out)
+        return dependencies
+
+    def getDependants(self, dependency):
+        code = ('import module_reloader.reloader\n'
+                'print module_reloader.reloader.getDependants(\'' +
+                self.tests_module + '.' + dependency + '\')')
         exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, err)
         dependencies = eval(out)
@@ -172,7 +187,19 @@ class UnitTest(test_utils.TestBase):
         actual_timestamps = self.getActualTimeStamps()
         self.assertEqual(expected_timestamps, actual_timestamps)
 
-    def testGetDependency(self):
+    def testGetHelloDependency(self):
+        # setup
+        self.setUpReloader()
+        self.importHello()
+
+        # exercise
+        dependencies = self.getDependencies('hello')
+
+        # verify
+        expectedDependencies = None
+        self.assertEqual(expectedDependencies, dependencies)
+
+    def testGetDependantDependency(self):
         # setup
         self.setUpReloader()
         self.importWithDependency()
@@ -183,6 +210,30 @@ class UnitTest(test_utils.TestBase):
         # verify
         expectedDependencies = [self.tests_module + '.dependency']
         self.assertEqual(expectedDependencies, dependencies)
+
+    def testGetDependencyDependants(self):
+        # setup
+        self.setUpReloader()
+        self.importWithDependency()
+
+        # exercise
+        dependants = self.getDependants('dependency')
+
+        # verify
+        expectedDependants = [self.tests_module + '.dependant']
+        self.assertEqual(expectedDependants, dependants)
+
+    def testReloadDependantIfDependencyChanged(self):
+        # setup
+        self.setUpReloader()
+        self.importWithDependency()
+
+        # exercise & verify
+        self.touch(self.buildFilename('dependency'))
+
+        self.reloadModified(['dependency', 'dependant'])
+
+        self.importWithDependencyAgain()
 
 
 if __name__ == "__main__":
