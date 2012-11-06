@@ -69,6 +69,7 @@ def reloadAllModules():
 def reloadModulesWhere(condition=lambda moduleName: True):
     start = time.time()
     print "Reloading modules...\n[\n",
+    _time_stamps.addMissingTimeStamps()
 
     #global rollbackImporter
 

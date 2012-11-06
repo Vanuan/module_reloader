@@ -67,7 +67,7 @@ class TestReloading(test_utils.TestBase):
         exitCode, out, err = self.executor.runScript(self.test_scripts_dir +
                                                      'main.py')
         self.assertEqual(0, exitCode, err)
-        self.assertEqual('',  out)
+        self.assertEqual('', out)
         self.assertEqual(err, '')
 
         # Reload modified modules (exercise)
@@ -124,7 +124,7 @@ class TestReloading(test_utils.TestBase):
         exitCode, out, err = self.executor.runScript(
                                     self.test_scripts_module_dir + 'main.py')
         self.assertEqual(0, exitCode, err)
-        self.assertEqual('',  out)
+        self.assertEqual('', out)
         self.assertEqual(err, '')
 
         # use module without import

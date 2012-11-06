@@ -44,7 +44,9 @@ def getFileName(module):
     if not hasattr(module, '__file__') or module.__file__ is None:
         return None
     if '__pyclasspath__' in module.__file__:
-        raise Exception(module.__file__ + ' contains __pyclasspath__')
+        #raise Exception(module.__file__ + ' contains __pyclasspath__')
+        print "warning: " + module.__file__ + ' contains __pyclasspath__'
+        return None
     moduleFileName = os.path.abspath(module.__file__)
     if moduleFileName.endswith('$py.class'):
         moduleFileName = moduleFileName[:-len('$py.class')] + '.py'
@@ -108,7 +110,6 @@ class Importer:
         self._dependant = name
 
         module = apply(self.realImport, (name, globals_, locals_, fromlist))
-        addMissingTimeStamps()
 
         # If we have a parent (i.e. this is a nested import) and this is a
         # reloadable (source-based) module, we append ourself to our parent's
