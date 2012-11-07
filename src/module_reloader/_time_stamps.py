@@ -20,8 +20,7 @@ def __always(modulename, module):
     return True
 
 
-def shouldSaveModule(module):
-    modulename = module.__name__
+def shouldSaveModule(modulename):
     return (modulename not in exceptions
             and modulename != '__main__')
 
@@ -31,23 +30,29 @@ def moduleIsMissing(module):
     return modulename not in global_modules_timestamps
 
 
-def updateTimeStamp(module):
+def updateTimeStamp(module, modulename):
     moduleFileName = getFileName(module)
     if moduleFileName is not None:
-        modulename = module.__name__
         modifiedTimeStamp = time.ctime(os.path.getmtime(moduleFileName))
         global_modules_timestamps[modulename] = (moduleFileName,
                                                  modifiedTimeStamp)
 
 
 def getFileName(module):
-    if not hasattr(module, '__file__') or module.__file__ is None:
+    filename = None
+    if type(module).__name__ == 'javapackage':  # skip java packages
         return None
-    if '__pyclasspath__' in module.__file__:
+    try:
+        filename = module.__file__  # is expensive operation for java packages!
+        if filename is None:
+            return None
+    except AttributeError:
+        return None
+    if '__pyclasspath__' in filename:
         #raise Exception(module.__file__ + ' contains __pyclasspath__')
-        print "warning: " + module.__file__ + ' contains __pyclasspath__'
+        print "warning: " + filename + ' contains __pyclasspath__'
         return None
-    moduleFileName = os.path.abspath(module.__file__)
+    moduleFileName = os.path.abspath(filename)
     if moduleFileName.endswith('$py.class'):
         moduleFileName = moduleFileName[:-len('$py.class')] + '.py'
     if not os.path.exists(moduleFileName):
@@ -57,14 +62,19 @@ def getFileName(module):
 
 
 def updateTimeStampsWhere(updateCondition=__always):
-    for module in filter(lambda m: m is not None, sys.modules.values()):
-        if shouldSaveModule(module):
+    modulesToUpdate = filter(lambda m: m is not None, sys.modules.values())
+    for module in modulesToUpdate:
+        modulename = module.__name__
+        if shouldSaveModule(modulename):
             if updateCondition(module):
-                updateTimeStamp(module)
+                updateTimeStamp(module, modulename)
 
 
 def addMissingTimeStamps():
+    start = time.time()
     updateTimeStampsWhere(updateCondition=moduleIsMissing)
+    timeElapsed = round(time.time() - start, 3)
+    print "addMissingTimeStamps: " + str(timeElapsed) + " s"
 
 
 def deleteDependencies(name):

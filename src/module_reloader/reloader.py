@@ -83,7 +83,7 @@ def reloadModulesWhere(condition=lambda moduleName: True):
         elif condition(modulename):
             module = sys.modules[modulename]
             reloadWithDependants(module)
-            _time_stamps.updateTimeStamp(module)
+            _time_stamps.updateTimeStamp(module, modulename)
             #rollbackImporter = RollbackImporter()
         else:
             pass

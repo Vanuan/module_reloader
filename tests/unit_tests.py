@@ -47,8 +47,10 @@ class UnitTest(test_utils.TestBase):
     def addMissingTimeStamps(self):
         code = ('import module_reloader.reloader\n'
                 'module_reloader.reloader._time_stamps.addMissingTimeStamps()')
-        result = self.executor.runCode(code)
-        self.assertRunCodeOutEqual('', result)
+        (exitcode, out, err) = self.executor.runCode(code)
+        pattern2 = re.compile('addMissingTimeStamps: 0.\d* s\n')
+        out = pattern2.sub('', out)
+        self.assertRunCodeOutEqual('', (exitcode, out, err))
 
     def importHello(self):
         '''
@@ -104,9 +106,11 @@ class UnitTest(test_utils.TestBase):
                 ' module_reloader.reloader.reloadModifiedModules()')
         exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, out + err)
-        pattern = re.compile('0.0[1,2]? seconds.')
-        out = pattern.sub('', out)
-        expected = pattern.sub('', self.buildExpectedReloading(modulenames))
+        pattern1 = re.compile('0.0[1,2]? seconds.')
+        out = pattern1.sub('', out)
+        pattern2 = re.compile('addMissingTimeStamps: 0.\d* s\n')
+        out = pattern2.sub('', out)
+        expected = pattern1.sub('', self.buildExpectedReloading(modulenames))
         self.assertEqual(expected, out)
 
     def getDependencies(self, dependant):
