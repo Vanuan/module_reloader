@@ -38,9 +38,13 @@ def updateTimeStamp(module, modulename):
                                                  modifiedTimeStamp)
 
 
+def isJavaPackage(module):
+    return type(module).__name__ == 'javapackage'
+
+
 def getFileName(module):
     filename = None
-    if type(module).__name__ == 'javapackage':  # skip java packages
+    if isJavaPackage(module):  # skip java packages
         return None
     try:
         filename = module.__file__  # is expensive operation for java packages!
@@ -124,15 +128,16 @@ class Importer:
         # If we have a parent (i.e. this is a nested import) and this is a
         # reloadable (source-based) module, we append ourself to our parent's
         # dependency list.
-        if dependant is not None and hasattr(module, '__file__'):
-            dependencies = _dependencies.setdefault(dependant, [])
-            dependency_name = module.__name__
-            dependencies.append(dependency_name)
+        if(not isJavaPackage(module)):
+            if dependant is not None and hasattr(module, '__file__'):
+                dependencies = _dependencies.setdefault(dependant, [])
+                dependency_name = module.__name__
+                dependencies.append(dependency_name)
 
-            dependant_m = sys.modules.get(dependant, None)
-            if dependant_m is not None and hasattr(dependant_m, '__file__'):
-                dependants = _dependants.setdefault(dependency_name, [])
-                dependants.append(dependant_m.__name__)
+                dependant_m = sys.modules.get(dependant, None)
+                if dependant_m is not None and hasattr(dependant_m, '__file__'):
+                    dependants = _dependants.setdefault(dependency_name, [])
+                    dependants.append(dependant_m.__name__)
 
         # Lastly, we always restore our global _parent pointer.
         self._dependant = dependant
