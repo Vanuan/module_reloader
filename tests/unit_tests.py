@@ -44,6 +44,12 @@ class UnitTest(test_utils.TestBase):
         result = self.executor.runCode(code)
         self.assertRunCodeOutEqual('', result)
 
+    def addMissingTimeStamps(self):
+        code = ('import module_reloader.reloader\n'
+                'module_reloader.reloader._time_stamps.addMissingTimeStamps()')
+        result = self.executor.runCode(code)
+        self.assertRunCodeOutEqual('', result)
+
     def importHello(self):
         '''
         We can import module from package in different ways:
@@ -98,7 +104,7 @@ class UnitTest(test_utils.TestBase):
                 ' module_reloader.reloader.reloadModifiedModules()')
         exitCode, out, err = self.executor.runCode(code)
         self.assertEqual(0, exitCode, out + err)
-        pattern = re.compile('0.01? seconds.')
+        pattern = re.compile('0.0[1,2]? seconds.')
         out = pattern.sub('', out)
         expected = pattern.sub('', self.buildExpectedReloading(modulenames))
         self.assertEqual(expected, out)
@@ -132,6 +138,7 @@ class UnitTest(test_utils.TestBase):
 
         # exercise import statement
         self.importHello()
+        self.addMissingTimeStamps()
 
         # verify that module time stamps are saved
         expected_timestamps = self.buildExpectedTimeStamps(['__init__',
@@ -146,6 +153,7 @@ class UnitTest(test_utils.TestBase):
         # setup
         self.setUpReloader()
         self.importHello()
+        self.addMissingTimeStamps()
         expected_timestamps = self.buildExpectedTimeStamps(['__init__',
                                                             'hello'])
         # modify real time stamp
@@ -153,6 +161,7 @@ class UnitTest(test_utils.TestBase):
 
         # exercise import statement
         self.importHelloAgain()
+        self.addMissingTimeStamps()
 
         # verify that time stamps are the same
         actual_timestamps = self.getActualTimeStamps()
@@ -162,6 +171,8 @@ class UnitTest(test_utils.TestBase):
         # setup
         self.setUpReloader()
         self.importHello()
+        self.addMissingTimeStamps()
+
         prev_modules_timestamps = self.getActualTimeStamps()
 
         # exercise
@@ -175,6 +186,8 @@ class UnitTest(test_utils.TestBase):
         # setup
         self.setUpReloader()
         self.importHello()
+        self.addMissingTimeStamps()
+
         # modify real time stamp
         self.touch(self.buildFilename('hello'))
         expected_timestamps = self.buildExpectedTimeStamps(['__init__',
@@ -227,6 +240,7 @@ class UnitTest(test_utils.TestBase):
         # setup
         self.setUpReloader()
         self.importWithDependency()
+        self.addMissingTimeStamps()
 
         # exercise & verify
         self.touch(self.buildFilename('dependency'))
@@ -239,6 +253,7 @@ class UnitTest(test_utils.TestBase):
         # setup
         self.setUpReloader()
         self.importWithDependency()
+        self.addMissingTimeStamps()
 
         # exercise & verify
         self.touch(self.buildFilename('dependant'))
