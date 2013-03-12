@@ -53,7 +53,13 @@ class RollbackImporter:
 
 #rollbackImporter = RollbackImporter()
 
+def removePythonModules():
+    for module in filter(lambda name: _time_stamps.isJavaPackage(name), sys.modules):
+        del sys.modules[module]
+
 def reloadModifiedModules():
+    removePythonModules()
+    return None
     '''
     Call this every time you run a Jython script.
 
