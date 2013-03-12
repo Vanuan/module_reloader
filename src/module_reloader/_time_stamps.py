@@ -119,11 +119,18 @@ class Importer:
         __builtin__.__import__ = self._import
         self._dependant = None
 
-    def _import(self, name, globals_=None, locals_=None, fromlist=[]):
+    def _import(self, name, globals_=None, locals_=None, fromlist=[], level=-1):
         dependant = self._dependant
         self._dependant = name
 
-        module = apply(self.realImport, (name, globals_, locals_, fromlist))
+        g = ''
+        if globals is not None:
+            g = str(globals)
+        if fromlist is None:
+            fromlist = []
+
+        #print "importing " + name + " " + g + "from " + str(fromlist)
+        module = apply(self.realImport, (name, globals_, locals_, fromlist, level))
 
         # If we have a parent (i.e. this is a nested import) and this is a
         # reloadable (source-based) module, we append ourself to our parent's
